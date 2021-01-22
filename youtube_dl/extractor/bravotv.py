@@ -73,6 +73,15 @@ class BravoTVIE(AdobePassIE):
                 'episode_number': int_or_none(metadata.get('episode_num')),
             })
             query['switch'] = 'progressive'
+
+        season_number = int_or_none(self._search_regex(
+            r'S(\d+)', webpage, 'season number',
+            default=None))
+
+        episode_number = int_or_none(self._search_regex(
+            r'E(\d+)', webpage, 'episode number',
+            default=None))
+
         info.update({
             '_type': 'url_transparent',
             'id': release_pid,

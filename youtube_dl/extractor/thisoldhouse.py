@@ -3,6 +3,9 @@ from __future__ import unicode_literals
 
 from .common import InfoExtractor
 
+from ..utils import (
+    int_or_none
+)
 
 class ThisOldHouseIE(InfoExtractor):
     _VALID_URL = r'https?://(?:www\.)?thisoldhouse\.com/(?:watch|how-to|tv-episode|(?:[^/]+/)?\d+)/(?P<id>[^/?#]+)'
@@ -36,7 +39,7 @@ class ThisOldHouseIE(InfoExtractor):
         'url': 'https://www.thisoldhouse.com/21083431/seaside-transformation-the-westerly-project',
         'only_matching': True,
     }]
-    _ZYPE_TMPL = 'https://player.zype.com/embed/%s.html?api_key=hsOk_yMSPYNrT22e9pu8hihLXjaZf0JW5jsOWv4ZqyHJFvkJn6rtToHl09tbbsbe'
+    _ZYPE_TMPL = 'https://www.thisoldhouse.com/videos/zype/%s'
 
     def _real_extract(self, url):
         display_id = self._match_id(url)
@@ -44,4 +47,32 @@ class ThisOldHouseIE(InfoExtractor):
         video_id = self._search_regex(
             r'<iframe[^>]+src=[\'"](?:https?:)?//(?:www\.)?thisoldhouse\.(?:chorus\.build|com)/videos/zype/([0-9a-f]{24})',
             webpage, 'video id')
-        return self.url_result(self._ZYPE_TMPL % video_id, 'Zype', video_id)
+
+        page_title = self._html_search_regex(r'<h1 class="c-page-title">(.+)<\/h1>', webpage, 'title')
+        series = self._html_search_meta('author', webpage)
+        season_number = int_or_none(self._search_regex(
+            r'S(\d+)', page_title, 'season number',
+            default=None))
+        episode_number = int_or_none(self._search_regex(
+            r'E(\d+)', page_title, 'episode number',
+            default=None))
+        title = self._search_regex(
+            r': (.+)', page_title, 'episode title',
+            default=None)
+
+        if series:
+            series = series.replace(' TV', '')
+
+        test = self._request_webpage(self._ZYPE_TMPL % video_id, video_id)
+        zype_url = test.geturl()
+
+        return {
+            '_type': 'url_transparent',
+            'id': video_id,
+            'title': title,
+            'series': series,
+            'season_number': season_number,
+            'episode_number': episode_number,
+            'url': zype_url,
+            'ie_key': 'Zype',
+        }
